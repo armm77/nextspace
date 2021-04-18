@@ -72,6 +72,9 @@ rm -rf %{buildroot}
 export CC=clang
 export CMAKE=%{CMAKE}
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"%{buildroot}/Library/Libraries:/usr/NextSpace/lib"
+%if 0%{?el7}
+source /opt/rh/llvm-toolset-7.0/enable
+%endif
 source /Developer/Makefiles/GNUstep.sh
 make
 
@@ -79,6 +82,9 @@ make
 # Build install phase
 #
 %install
+%if 0%{?el7}
+source /opt/rh/llvm-toolset-7.0/enable
+%endif
 source /Developer/Makefiles/GNUstep.sh
 export PATH+=":%{buildroot}/Library/bin:%{buildroot}/usr/NextSpace/bin"
 export QA_SKIP_BUILD_ROOT=1
