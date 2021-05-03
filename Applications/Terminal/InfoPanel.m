@@ -32,6 +32,7 @@
     {
       [NSBundle loadNibNamed:@"Info" owner:self];
     }
+  [panel center];
   [panel makeKeyAndOrderFront:self];
   // [NSTimer scheduledTimerWithTimeInterval:2.0
   //                                  target:self
