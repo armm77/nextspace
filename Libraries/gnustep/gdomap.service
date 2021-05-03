@@ -4,7 +4,7 @@ After=syslog.target network.target
 
 [Service]
 Type=forking
-Environment=LD_LIBRARY_PATH=/Library/Libraries
+Environment=LD_LIBRARY_PATH=/Library/Libraries:/usr/NextSpace/lib
 ExecStart=/Library/bin/gdomap -p -a /usr/NextSpace/etc/gdomap.interfaces
 ExecStop=/bin/kill -INT $MAINPID
 KillMode=process
