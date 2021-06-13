@@ -35,8 +35,8 @@ prepare_environment()
     if [ $? -eq 1 ]; then BUILD_TOOLS+=" patch"; fi
 
     if [ -f /etc/os-release ]; then 
-        if [ $OS_ID == "centos" ];then
-            if [ $OS_VERSION == "7" ];then
+        if [ $OS_ID == "centos" ]; then
+            if [ $OS_VERSION == "7" ]; then
                 yum repolist | grep "epel/" 2>&1 > /dev/null
                 if [ $? -eq 1 ]; then
                     BUILD_TOOLS+=" https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm";
@@ -47,22 +47,22 @@ prepare_environment()
                 if [ $? -eq 1 ]; then BUILD_TOOLS+=" centos-release-scl-rh"; fi
             fi
             if [ $OS_VERSION == "8" ];then
-                # Could be "CentOS Linux" or "CentOS Stream"
-                if [ "$OS_NAME" == "CentOS Stream" ]; then
-                    yum config-manager --set-enabled powertools
-                else
-                    yum config-manager --set-enabled PowerTools
-                fi
+                dnf config-manager --set-enabled powertools
                 rpm -q epel-release 2>&1 > /dev/null
                 if [ $? -eq 1 ]; then BUILD_TOOLS+=" epel-release"; fi
                 rpm -q dnf-plugins-core 2>&1 > /dev/null
                 if [ $? -eq 1 ]; then BUILD_TOOLS+=" dnf-plugins-core"; fi
-                rpm -q git 2>&1 > /dev/null
-                if [ $? -eq 1 ]; then BUILD_TOOLS+=" git"; fi
             fi
         fi
+        if [ $OS_ID == "rocky" ]; then
+             dnf config-manager --set-enabled powertools
+             rpm -q epel-release 2>&1 > /dev/null
+             if [ $? -eq 1 ]; then BUILD_TOOLS+=" epel-release"; fi
+             rpm -q dnf-plugins-core 2>&1 > /dev/null
+             if [ $? -eq 1 ]; then BUILD_TOOLS+=" dnf-plugins-core"; fi
+        fi
     else
-        print_H2 ">>>>> Can't find /etc/os-release - this OS is unsupported."
+        print_ERR ">>>>> Can't find /etc/os-release - this OS is unsupported."
         return 1
     fi
     

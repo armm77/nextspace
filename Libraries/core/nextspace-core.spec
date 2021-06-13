@@ -24,6 +24,8 @@ Requires:	libobjc2 >= 1.8
 Requires:	zsh
 Requires:	plymouth-plugin-script
 Requires:	plymouth-plugin-label
+Requires:	libart_lgpl
+Requires:	udisks2
 Requires:	tuned
 Requires:	which
 
@@ -97,7 +99,7 @@ cp -vr ./dot_hidden %{buildroot}/.hidden
 mkdir %{buildroot}/Users
 mkdir -p %{buildroot}/usr/NextSpace/etc
 
-%files 
+%files
 /.hidden
 /Library
 /Users

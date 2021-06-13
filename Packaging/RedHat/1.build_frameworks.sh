@@ -34,11 +34,11 @@ spectool -g -R ${SPEC_FILE}
 print_H2 "===== Building nextspace-frameworks package..."
 rpmbuild -bb ${SPEC_FILE}
 STATUS=$?
-if [ $STATUS -eq 0 ]; then 
+if [ $STATUS -eq 0 ]; then
     print_OK " Building of NEXTSPACE Frameworks RPM SUCCEEDED!"
     print_H2 "===== Installing nextspace-frameworks RPMs..."
     FRAMEWORKS_VERSION=`rpm_version ${SPEC_FILE}`
-    
+
     install_rpm nextspace-frameworks ${RPMS_DIR}/nextspace-frameworks-${FRAMEWORKS_VERSION}.rpm
     mv ${RPMS_DIR}/nextspace-frameworks-${FRAMEWORKS_VERSION}.rpm ${RELEASE_USR}
 

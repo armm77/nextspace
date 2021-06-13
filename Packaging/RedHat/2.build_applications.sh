@@ -41,7 +41,7 @@ spectool -g -R ${SPEC_FILE}
 print_H2 "===== Building nextspace-applications package..."
 rpmbuild -bb ${SPEC_FILE}
 STATUS=$?
-if [ $STATUS -eq 0 ]; then 
+if [ $STATUS -eq 0 ]; then
     print_OK " Building of NEXTSPACE Applications RPM SUCCEEDED!"
     print_H2 "===== Installing nextspace-applications RPMs..."
     APPLICATIONS_VERSION=`rpm_version ${SPEC_FILE}`
