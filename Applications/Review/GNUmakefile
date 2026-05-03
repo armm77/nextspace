@@ -31,7 +31,8 @@ Resources/NotImageable.tiff \
 Resources/PNGImage.tiff \
 Resources/Review.tiff \
 Resources/TIFFImage.tiff \
-Resources/XPMImage.tiff
+Resources/XPMImage.tiff \
+Resources/PDFDocument.tiff
 
 
 #
@@ -53,7 +54,8 @@ ImageHolder.h \
 ImageWindow.h \
 Inspector.h \
 PrefController.h \
-ImageShowing.h
+ImageShowing.h \
+PDFWindow.h
 
 #
 # Class files
@@ -64,7 +66,8 @@ ImageCache.m \
 ImageHolder.m \
 ImageWindow.m \
 Inspector.m \
-PrefController.m
+PrefController.m \
+PDFWindow.m
 
 #
 # Other sources

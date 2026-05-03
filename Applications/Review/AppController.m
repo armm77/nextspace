@@ -7,6 +7,7 @@
 
 #import "AppController.h"
 #import "ImageWindow.h"
+#import "PDFWindow.h"
 #import "Inspector.h"
 #import "PrefController.h"
 
@@ -77,7 +78,14 @@
 
 - (BOOL)openImageAtPath:(NSString *)path
 {
-  ImageWindow *win = [[ImageWindow alloc] initWithContentsOfFile:path];
+  NSString *ext = [[path pathExtension] lowercaseString];
+  id win = nil;
+
+  if ([ext isEqualToString:@"pdf"]) {
+    win = [[PDFWindow alloc] initWithContentsOfFile:path];
+  } else {
+    win = [[ImageWindow alloc] initWithContentsOfFile:path];
+  }
 
   if (win) {
     [win setDelegate:self];
@@ -90,7 +98,8 @@
 - (void)openImage:(id)sender
 {
   int result;
-  NSArray *fileTypes = [NSImage imageFileTypes];
+  NSMutableArray *fileTypes = [NSMutableArray arrayWithArray:[NSImage imageFileTypes]];
+  [fileTypes addObjectsFromArray:@[@"pdf"]];
   NXTOpenPanel *openPanel = [NXTOpenPanel openPanel];
   NSString *pth = [[NSUserDefaults standardUserDefaults] objectForKey:@"OpenDir"];
 

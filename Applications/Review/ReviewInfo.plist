@@ -36,6 +36,10 @@
 	{
 	    NSIcon = "XPMImage.tiff";
 	    NSUnixExtensions = (xpm);
+	},
+	{
+	    NSIcon = "PDFDocument.tiff";
+	    NSUnixExtensions = (pdf);
 	}
     );
 }
