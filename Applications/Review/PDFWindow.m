@@ -18,6 +18,118 @@
 
 #import "PDFWindow.h"
 
+/* ------------------------------------------------------------------ */
+#pragma mark - PDFScrollView (drag-to-pan)
+
+@interface PDFScrollView : NSScrollView
+{
+  NSPoint           _dragStart;
+  NSPoint           _scrollStart;
+  BOOL              _isDragging;
+  NSCursor         *_openHand;
+  NSCursor         *_closedHand;
+  NSTrackingRectTag _trackTag;
+}
+@end
+
+@implementation PDFScrollView
+
+- (BOOL)_canDrag
+{
+  NSSize docSize  = [[self documentView] frame].size;
+  NSSize clipSize = [[self contentView] bounds].size;
+  return (docSize.width  > clipSize.width ||
+          docSize.height > clipSize.height);
+}
+
+- (void)_loadCursors
+{
+  if (!_openHand) {
+    _openHand   = [NSCursor openHandCursor];
+    _closedHand = [NSCursor closedHandCursor];
+  }
+}
+
+/* GNUstep uses addTrackingRect:owner:userData:assumeInside:
+ * instead of NSTrackingArea. Reset the rect when the view resizes. */
+- (void)resetCursorRects
+{
+  [super resetCursorRects];
+  if (_trackTag)
+    [self removeTrackingRect:_trackTag];
+  _trackTag = [self addTrackingRect:[self bounds]
+                              owner:self
+                           userData:nil
+                       assumeInside:NO];
+}
+
+- (void)mouseEntered:(NSEvent *)event
+{
+  [self _loadCursors];
+  if ([self _canDrag])
+    [_openHand set];
+}
+
+- (void)mouseExited:(NSEvent *)event
+{
+  [[NSCursor arrowCursor] set];
+}
+
+- (void)mouseDown:(NSEvent *)event
+{
+  if (![self _canDrag]) {
+    [super mouseDown:event];
+    return;
+  }
+  [self _loadCursors];
+  [_closedHand set];
+  _isDragging  = YES;
+  _dragStart   = [event locationInWindow];
+  _scrollStart = [[self contentView] bounds].origin;
+}
+
+- (void)mouseDragged:(NSEvent *)event
+{
+  if (!_isDragging) {
+    [super mouseDragged:event];
+    return;
+  }
+  NSPoint current = [event locationInWindow];
+  CGFloat dx = current.x - _dragStart.x;
+  CGFloat dy = current.y - _dragStart.y;
+
+  NSPoint newOrigin = NSMakePoint(_scrollStart.x - dx,
+                                  _scrollStart.y - dy);
+
+  NSSize docSize  = [[self documentView] frame].size;
+  NSSize clipSize = [[self contentView] bounds].size;
+  CGFloat maxX = MAX(0, docSize.width  - clipSize.width);
+  CGFloat maxY = MAX(0, docSize.height - clipSize.height);
+  newOrigin.x = MAX(0, MIN(newOrigin.x, maxX));
+  newOrigin.y = MAX(0, MIN(newOrigin.y, maxY));
+
+  [[self contentView] scrollToPoint:newOrigin];
+  [self reflectScrolledClipView:[self contentView]];
+}
+
+- (void)mouseUp:(NSEvent *)event
+{
+  if (!_isDragging) {
+    [super mouseUp:event];
+    return;
+  }
+  _isDragging = NO;
+  [self _loadCursors];
+  if ([self _canDrag])
+    [_openHand set];
+  else
+    [[NSCursor arrowCursor] set];
+}
+
+@end
+
+/* ------------------------------------------------------------------ */
+
 /* Scale steps shown in the popup — same set used by ImageWindow */
 static NSString * const kScaleItems[] = {
   @"12.5%", @"25%", @"50%", @"75%", @"100%",
@@ -181,7 +293,7 @@ static const CGFloat kToolbarH  = 32.0;   /* height of the bottom toolbar */
   /* ---- Scroll view + image view ---- */
   NSRect scrollRect = NSMakeRect(0, kToolbarH,
                                  winW, winH - kToolbarH);
-  scrollView = [[NSScrollView alloc] initWithFrame:scrollRect];
+  scrollView = [[PDFScrollView alloc] initWithFrame:scrollRect];
   [scrollView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
   [scrollView setHasVerticalScroller:YES];
   [scrollView setHasHorizontalScroller:YES];

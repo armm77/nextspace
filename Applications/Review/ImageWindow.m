@@ -11,6 +11,12 @@
 
 @interface ImageScrollView : NSScrollView
 {
+  NSPoint      _dragStart;
+  NSPoint      _scrollStart;
+  BOOL         _isDragging;
+  NSCursor    *_openHand;
+  NSCursor    *_closedHand;
+  NSTrackingRectTag _trackTag;
 }
 @property (readwrite, assign) NSView *scaleView;
 @property (readwrite, assign) NSView *multipageView;
@@ -18,6 +24,102 @@
 @end
 
 @implementation ImageScrollView
+
+/* Returns YES when the document is larger than the visible area */
+- (BOOL)_canDrag
+{
+  NSSize docSize  = [[self documentView] frame].size;
+  NSSize clipSize = [[self contentView] bounds].size;
+  return (docSize.width  > clipSize.width ||
+          docSize.height > clipSize.height);
+}
+
+- (void)_loadCursors
+{
+  if (!_openHand) {
+    _openHand   = [NSCursor openHandCursor];
+    _closedHand = [NSCursor closedHandCursor];
+  }
+}
+
+/* Track mouse enter/exit to show open-hand cursor */
+/* GNUstep uses addTrackingRect:owner:userData:assumeInside:
+ * instead of NSTrackingArea. Reset the rect when the view resizes. */
+- (void)resetCursorRects
+{
+  [super resetCursorRects];
+  if (_trackTag)
+    [self removeTrackingRect:_trackTag];
+  _trackTag = [self addTrackingRect:[self bounds]
+                              owner:self
+                           userData:nil
+                       assumeInside:NO];
+}
+
+- (void)mouseEntered:(NSEvent *)event
+{
+  [self _loadCursors];
+  if ([self _canDrag])
+    [_openHand set];
+}
+
+- (void)mouseExited:(NSEvent *)event
+{
+  [[NSCursor arrowCursor] set];
+}
+
+- (void)mouseDown:(NSEvent *)event
+{
+  if (![self _canDrag]) {
+    [super mouseDown:event];
+    return;
+  }
+  [self _loadCursors];
+  [_closedHand set];
+  _isDragging  = YES;
+  _dragStart   = [event locationInWindow];
+  _scrollStart = [[self contentView] bounds].origin;
+}
+
+- (void)mouseDragged:(NSEvent *)event
+{
+  if (!_isDragging) {
+    [super mouseDragged:event];
+    return;
+  }
+  NSPoint current = [event locationInWindow];
+  CGFloat dx = current.x - _dragStart.x;
+  CGFloat dy = current.y - _dragStart.y;
+
+  /* Invert delta: dragging right scrolls left (natural panning) */
+  NSPoint newOrigin = NSMakePoint(_scrollStart.x - dx,
+                                  _scrollStart.y - dy);
+
+  /* Clamp to document bounds */
+  NSSize docSize  = [[self documentView] frame].size;
+  NSSize clipSize = [[self contentView] bounds].size;
+  CGFloat maxX = MAX(0, docSize.width  - clipSize.width);
+  CGFloat maxY = MAX(0, docSize.height - clipSize.height);
+  newOrigin.x = MAX(0, MIN(newOrigin.x, maxX));
+  newOrigin.y = MAX(0, MIN(newOrigin.y, maxY));
+
+  [[self contentView] scrollToPoint:newOrigin];
+  [self reflectScrolledClipView:[self contentView]];
+}
+
+- (void)mouseUp:(NSEvent *)event
+{
+  if (!_isDragging) {
+    [super mouseUp:event];
+    return;
+  }
+  _isDragging = NO;
+  [self _loadCursors];
+  if ([self _canDrag])
+    [_openHand set];
+  else
+    [[NSCursor arrowCursor] set];
+}
 
 - (void)tile
 {
