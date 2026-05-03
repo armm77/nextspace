@@ -209,8 +209,15 @@ static const CGFloat kToolbarH  = 32.0;   /* height of the bottom toolbar */
   /* Use the first page size (at 100% scale) to set initial window size */
   pageSize = [pdfDocument pageSize:1 considerRotation:YES];
 
-  CGFloat winW = MAX(pageSize.width,  kMinWidth);
-  CGFloat winH = MAX(pageSize.height, kMinHeight) + kToolbarH;
+  /* Open the window at a sensible size capped to 90% of the screen.
+   * The scroll view handles the rest — the imageView will be sized
+   * to the full rendered page in _updateDisplay.                    */
+  NSRect screenRect = [[NSScreen mainScreen] visibleFrame];
+  CGFloat maxW = screenRect.size.width  * 0.9;
+  CGFloat maxH = screenRect.size.height * 0.9;
+
+  CGFloat winW = MAX(MIN(pageSize.width,  maxW), kMinWidth);
+  CGFloat winH = MAX(MIN(pageSize.height, maxH - kToolbarH), kMinHeight) + kToolbarH;
 
   contentRect = NSMakeRect(0, 0, winW, winH);
 
@@ -299,11 +306,13 @@ static const CGFloat kToolbarH  = 32.0;   /* height of the bottom toolbar */
   [scrollView setHasHorizontalScroller:YES];
   [scrollView setBorderType:NSBezelBorder];
 
-  /* Image view sized to first page — will be resized after each render */
+  /* Image view sized to first page at 100% scale (72dpi = 1:1 points).
+   * _updateDisplay will resize it to the actual rendered bitmap size. */
+  NSSize firstPageSize = [pdfDocument pageSize:1 considerRotation:YES];
   imageView = [[NSImageView alloc]
                  initWithFrame:NSMakeRect(0, 0,
-                                          pageSize.width,
-                                          pageSize.height)];
+                                          firstPageSize.width,
+                                          firstPageSize.height)];
   [imageView setImageAlignment:NSImageAlignCenter];
   [imageView setEditable:NO];
 
@@ -327,19 +336,24 @@ static const CGFloat kToolbarH  = 32.0;   /* height of the bottom toolbar */
   [pdfImageRep setPageNum:(int)currentPage];
   [pdfImageRep setResolution:resolution];
 
-  /* Get the scaled page size from the rep */
-  NSSize pageSize = [pdfImageRep size];
+  /* Calculate the rendered pixel size explicitly.
+   * [pdfImageRep size] returns points (72dpi baseline), not pixels.
+   * At any other resolution the bitmap is larger/smaller.
+   * Formula: pixelSize = pointSize * (resolution / kBaseDPI)         */
+  NSSize pointSize  = [pdfDocument pageSize:(int)currentPage considerRotation:YES];
+  CGFloat scale     = resolution / kBaseDPI;
+  NSSize pixelSize  = NSMakeSize(ceil(pointSize.width  * scale),
+                                 ceil(pointSize.height * scale));
 
-  /* Create a blank NSImage of the right size, then draw the rep into it
-   * using lockFocus so that drawInRect: (and thus _updatePage inside
-   * PDFImageRep) is actually called and produces the bitmap.         */
-  NSImage *image = [[NSImage alloc] initWithSize:pageSize];
+  /* Create NSImage at the exact pixel size so lockFocus allocates the
+   * full bitmap — no truncation.                                      */
+  NSImage *image = [[NSImage alloc] initWithSize:pixelSize];
   [image lockFocus];
-  [pdfImageRep drawInRect:NSMakeRect(0, 0, pageSize.width, pageSize.height)];
+  [pdfImageRep drawInRect:NSMakeRect(0, 0, pixelSize.width, pixelSize.height)];
   [image unlockFocus];
 
   /* Resize the document view to match the rendered page */
-  [imageView setFrameSize:pageSize];
+  [imageView setFrameSize:pixelSize];
   [imageView setImage:image];
   RELEASE(image);
 
