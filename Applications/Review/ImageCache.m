@@ -29,7 +29,9 @@ static ImageCache *_imgCache = nil;
 {
   if( self = [super init])
 	{
-	  maxImages = 50;
+	  NSString *saved = [[NSUserDefaults standardUserDefaults]
+	                       objectForKey:@"CacheSize"];
+	  maxImages = (saved && [saved intValue] > 0) ? (unsigned int)[saved intValue] : 50;
 
 	  cache = [[NSMutableDictionary alloc] init];
 	  accessList = [[NSMutableArray alloc] initWithCapacity:maxImages];

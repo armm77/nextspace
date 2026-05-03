@@ -13,189 +13,127 @@
 
 @implementation PrefController
 
+#pragma mark - Init / Dealloc
+
 - (id)init
 {
-  if (self = [super init]) {
-    unsigned int style = NSTitledWindowMask | NSClosableWindowMask;
-    NSRect winFrame = NSMakeRect(200, 300, 260, 280);
-    NSRect rect;
-    NSTextField *textField;
-    NSBox *box;
-    NSMatrix *matrix;
-    NSButton *button;
-    NSButtonCell *buttonCell = [[NSButtonCell alloc] init];
-    NSDictionary *prefs;
+  if ((self = [super init]) == nil)
+    return nil;
 
-    prefs = [[NSUserDefaults standardUserDefaults] dictionaryRepresentation];
-    prefDict = [[NSMutableDictionary alloc] initWithDictionary:prefs];
-
-    preferences = [[NSWindow alloc] initWithContentRect:winFrame
-                                              styleMask:style
-                                                backing:NSBackingStoreBuffered
-                                                  defer:YES];
-    [preferences setMinSize:NSMakeSize(260, 280)];
-    [preferences setTitle:@"Preferences"];
-    [preferences setDelegate:self];
-    [preferences setReleasedWhenClosed:NO];
-    [preferences center];
-    [preferences setFrameAutosaveName:@"Preferences"];
-
-    box = [[NSBox alloc] init];
-    [box setTitle:@"Image Cache"];
-    [box setFrameFromContentFrame:NSMakeRect(16, 180, 228, 64)];
-    [[preferences contentView] addSubview:box];
-    RELEASE(box);
-
-    textField = [[NSTextField alloc] initWithFrame:NSMakeRect(8, 16, 80, 21)];
-    [textField setAlignment:NSRightTextAlignment];
-    [textField setBordered:NO];
-    [textField setEditable:NO];
-    [textField setBezeled:NO];
-    [textField setDrawsBackground:NO];
-    [textField setStringValue:@"Cache size:"];
-    [box addSubview:textField];
-    RELEASE(textField);
-
-    rect = NSMakeRect(92, 16, 124, 21);
-    cacheSizeField = [[NSTextField alloc] initWithFrame:rect];
-    [cacheSizeField setAlignment:NSRightTextAlignment];
-    [cacheSizeField setBordered:NO];
-    [cacheSizeField setEditable:YES];
-    [cacheSizeField setBezeled:YES];
-    [cacheSizeField setDrawsBackground:YES];
-    [cacheSizeField setTarget:self];
-    [cacheSizeField setAction:@selector(setCacheSize:)];
-    [box addSubview:cacheSizeField];
-    RELEASE(cacheSizeField);
-
-    rect = NSMakeRect(32, 144, 220, 15);
-    openRecursive = [[NSButton alloc] initWithFrame:rect];
-    [openRecursive setTitle:@"Open path recursively"];
-    [openRecursive setButtonType:NSSwitchButton];
-    [openRecursive setBordered:NO];
-    [openRecursive setTarget:self];
-    [openRecursive setAction:@selector(setOpenRecursive:)];
-    [openRecursive setContinuous:NO];
-    [[preferences contentView] addSubview:openRecursive];
-    [openRecursive sizeToFit];
-    RELEASE(openRecursive);
-
-    rect = NSMakeRect(132, 8, 116, 24);
-    matrix = [[NSMatrix alloc] initWithFrame:rect
-                                        mode:NSHighlightModeMatrix
-                                   prototype:buttonCell
-                                numberOfRows:1
-                             numberOfColumns:2];
-    [matrix setSelectionByRect:YES];
-    [matrix setAutoresizingMask:(NSViewMinXMargin | NSViewMaxYMargin)];
-    [matrix setTarget:self];
-    [matrix setAction:@selector(buttonsPressed:)];
-    [matrix setIntercellSpacing:NSMakeSize(2, 2)];
-    [[preferences contentView] addSubview:matrix];
-    RELEASE(matrix);
-    RELEASE(buttonCell);
-
-    button = [matrix cellAtRow:0 column:0];
-    [button setTag:0];
-    [button setStringValue:@"Reset"];
-    [button setBordered:YES];
-    [button setButtonType:NSMomentaryPushButton];
-
-    button = [matrix cellAtRow:0 column:1];
-    [button setTag:1];
-    [button setStringValue:@"Set"];
-    [button setBordered:YES];
-    [button setButtonType:NSMomentaryPushButton];
+  if (![NSBundle loadNibNamed:@"Preferences" owner:self]) {
+    NSLog(@"PrefController: could not load Preferences.gorm");
+    RELEASE(self);
+    return nil;
   }
+
+  [window setReleasedWhenClosed:NO];
+  [window setFrameAutosaveName:@"Preferences"];
+
   return self;
 }
 
 - (void)dealloc
 {
-  RELEASE(preferences);
-  RELEASE(prefDict);
-
+  RELEASE(window);
   [super dealloc];
 }
 
+#pragma mark - Show panel
+
 - (void)show
 {
-  NSString *string = nil;
+  [self _loadPreferencesIntoUI];
+  [window setDocumentEdited:NO];
 
-  if (![preferences isVisible]) {
-    [preferences setFrameUsingName:@"Preferences"];
+  if (![window isVisible])
+    [window setFrameUsingName:@"Preferences"];
+
+  [window makeKeyAndOrderFront:nil];
+}
+
+#pragma mark - Private helpers
+
+- (void)_loadPreferencesIntoUI
+{
+  NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+  NSString *cacheSize = [ud objectForKey:@"CacheSize"] ?: @"50";
+  NSString *openRec   = [ud objectForKey:@"OpenRec"]   ?: @"NO";
+
+  [cacheSizeField setStringValue:cacheSize];
+
+  NSButton *chk = openRecursive
+                    ? openRecursive
+                    : [self _findCheckboxInView:[window contentView]];
+  [chk setState:([openRec isEqualToString:@"YES"]) ? NSOnState : NSOffState];
+}
+
+/* Locate the checkbox by title — fallback when Gorm outlet is not wired */
+- (NSButton *)_findCheckboxInView:(NSView *)view
+{
+  for (NSView *sub in [view subviews]) {
+    if ([sub isKindOfClass:[NSButton class]]) {
+      NSButton *btn = (NSButton *)sub;
+      if ([[btn title] rangeOfString:@"recursively"
+                             options:NSCaseInsensitiveSearch].location != NSNotFound) {
+        return btn;
+      }
+    }
+    NSButton *found = [self _findCheckboxInView:sub];
+    if (found) return found;
+  }
+  return nil;
+}
+
+#pragma mark - IBActions
+
+- (IBAction)setCacheSize:(id)sender
+{
+  [window setDocumentEdited:YES];
+}
+
+- (IBAction)setOpenRecursive:(id)sender
+{
+  [window setDocumentEdited:YES];
+}
+
+- (IBAction)resetPreferences:(id)sender
+{
+  [cacheSizeField setStringValue:@"50"];
+  NSButton *chk = openRecursive
+                    ? openRecursive
+                    : [self _findCheckboxInView:[window contentView]];
+  [chk setState:NSOffState];
+  [window setDocumentEdited:YES];
+}
+
+- (IBAction)setPreferences:(id)sender
+{
+  NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
+  NSString *sizeStr  = [cacheSizeField stringValue];
+  int cacheSize      = [sizeStr intValue];
+
+  if (cacheSize <= 0) {
+    NSRunAlertPanel(@"Invalid value",
+                    @"Cache size must be a number greater than zero.",
+                    @"OK", nil, nil);
+    NSString *saved = [ud objectForKey:@"CacheSize"];
+    [cacheSizeField setStringValue:(saved) ? saved : @"50"];
+    return;
   }
 
-  string = [prefDict objectForKey:@"CacheSize"];
-  [cacheSizeField setStringValue:(string) ? string : @"50"];
+  [ud setObject:sizeStr forKey:@"CacheSize"];
+  [[ImageCache sharedCache] setMaxImages:(unsigned int)cacheSize];
 
-  string = [prefDict objectForKey:@"OpenRec"];
-  [openRecursive setState:([string isEqualToString:@"YES"]) ? NSOnState : NSOffState];
+  NSButton *chk = openRecursive
+                    ? openRecursive
+                    : [self _findCheckboxInView:[window contentView]];
+  NSString *openRec = (chk && [chk state] == NSOnState) ? @"YES" : @"NO";
+  [ud setObject:openRec forKey:@"OpenRec"];
 
-  [preferences makeKeyAndOrderFront:self];
-}
+  [ud synchronize];
 
-- (void)setCacheSize:(id)sender
-{
-  NSString *val = [cacheSizeField stringValue];
-
-  [prefDict setObject:val forKey:@"CacheSize"];
-  [preferences setDocumentEdited:YES];
-}
-
-- (void)setOpenRecursive:(id)sender
-{
-  switch ([[sender selectedCell] state]) {
-    case 0:
-      [prefDict setObject:@"NO" forKey:@"OpenRec"];
-      break;
-    case 1:
-      [prefDict setObject:@"YES" forKey:@"OpenRec"];
-      break;
-    default:
-      break;
-  }
-
-  [preferences setDocumentEdited:YES];
-}
-
-- (void)buttonsPressed:(id)sender
-{
-  switch ([[sender selectedCell] tag]) {
-    case 0:
-      [self resetPreferences];
-      break;
-    case 1:
-      [self setPreferences];
-      break;
-  }
-
-  [preferences setDocumentEdited:NO];
-  //[preferences orderOut:self];
-}
-
-- (void)resetPreferences
-{
-  NSString *string;
-
-  string = [[NSUserDefaults standardUserDefaults] objectForKey:@"CacheSize"];
-  [cacheSizeField setStringValue:(string) ? string : @"50"];
-
-  [openRecursive setState:([[[NSUserDefaults standardUserDefaults] objectForKey:@"OpenRec"]
-                              isEqualToString:@"YES"])
-                              ? NSOnState
-                              : NSOffState];
-}
-
-- (void)setPreferences
-{
-  NSString *string = [prefDict objectForKey:@"CacheSize"];
-
-  [[NSUserDefaults standardUserDefaults] setObject:string forKey:@"CacheSize"];
-  [[ImageCache sharedCache] setMaxImages:[string intValue]];
-
-  string = [prefDict objectForKey:@"OpenRec"];
-  [[NSUserDefaults standardUserDefaults] setObject:string forKey:@"OpenRec"];
+  [window setDocumentEdited:NO];
+  [window orderOut:nil];
 }
 
 @end

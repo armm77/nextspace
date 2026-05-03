@@ -15,8 +15,10 @@
 
 + (void)initialize
 {
-  NSMutableDictionary *defaults = [NSMutableDictionary dictionary];
-
+  NSDictionary *defaults = @{
+    @"CacheSize" : @"50",
+    @"OpenRec"   : @"NO"
+  };
   [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
   [[NSUserDefaults standardUserDefaults] synchronize];
 }
@@ -78,6 +80,15 @@
 
 - (BOOL)openImageAtPath:(NSString *)path
 {
+  NSFileManager *fm = [NSFileManager defaultManager];
+  BOOL isDir = NO;
+
+  [fm fileExistsAtPath:path isDirectory:&isDir];
+
+  if (isDir) {
+    return [self openImagesInDirectory:path];
+  }
+
   NSString *ext = [[path pathExtension] lowercaseString];
   id win = nil;
 
@@ -90,9 +101,43 @@
   if (win) {
     [win setDelegate:self];
     [imageWindows addObject:win];
+    RELEASE(win);
     return YES;
   }
   return NO;
+}
+
+- (BOOL)openImagesInDirectory:(NSString *)dirPath
+{
+  NSFileManager  *fm        = [NSFileManager defaultManager];
+  NSUserDefaults *ud        = [NSUserDefaults standardUserDefaults];
+  BOOL            recursive = [[ud objectForKey:@"OpenRec"] isEqualToString:@"YES"];
+
+  NSMutableSet *supported = [NSMutableSet setWithArray:[NSImage imageFileTypes]];
+  [supported addObject:@"pdf"];
+
+  NSDirectoryEnumerator *enumerator = [fm enumeratorAtPath:dirPath];
+  NSString *entry;
+  BOOL      anyOpened = NO;
+
+  while ((entry = [enumerator nextObject]) != nil) {
+    if (!recursive) {
+      BOOL isSubDir = NO;
+      NSString *fullPath = [dirPath stringByAppendingPathComponent:entry];
+      [fm fileExistsAtPath:fullPath isDirectory:&isSubDir];
+      if (isSubDir) {
+        [enumerator skipDescendents];
+        continue;
+      }
+    }
+    NSString *ext = [[entry pathExtension] lowercaseString];
+    if (![supported containsObject:ext])
+      continue;
+    NSString *fullPath = [dirPath stringByAppendingPathComponent:entry];
+    if ([self openImageAtPath:fullPath])
+      anyOpened = YES;
+  }
+  return anyOpened;
 }
 
 - (void)openImage:(id)sender
@@ -103,8 +148,10 @@
   NXTOpenPanel *openPanel = [NXTOpenPanel openPanel];
   NSString *pth = [[NSUserDefaults standardUserDefaults] objectForKey:@"OpenDir"];
 
-  [openPanel setCanChooseDirectories:NO];
-  [openPanel setAllowsMultipleSelection:NO];
+  BOOL recursive = [[[NSUserDefaults standardUserDefaults]
+                       objectForKey:@"OpenRec"] isEqualToString:@"YES"];
+  [openPanel setCanChooseDirectories:YES];
+  [openPanel setAllowsMultipleSelection:recursive];
   result = [openPanel runModalForDirectory:pth file:nil types:fileTypes];
 
   if (result == NSOKButton) {

@@ -42,7 +42,8 @@ Review_LANGUAGES = English
 Review_LOCALIZED_RESOURCE_FILES = \
 Review.gorm \
 InfoPanel.gorm \
-Inspector.gorm
+Inspector.gorm \
+Preferences.gorm
 
 #
 # Header files

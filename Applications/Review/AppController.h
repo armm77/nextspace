@@ -34,6 +34,7 @@
 - (void)showInspector:(id)sender;
 
 - (BOOL)openImageAtPath:(NSString *)path;
+- (BOOL)openImagesInDirectory:(NSString *)dirPath;
 - (void)openImage:(id)sender;
 
 - (void)imageWindowWillClose:(id)sender;

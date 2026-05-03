@@ -15,25 +15,19 @@
 
 @interface PrefController : NSObject
 {
-    NSWindow *preferences;
-    NSMutableDictionary *prefDict;
-
-    id cacheSizeField;
-    id openRecursive;
+  IBOutlet NSWindow     *window;
+  IBOutlet NSTextField  *cacheSizeField;
+  IBOutlet NSButton     *openRecursive;
 }
 
--(id)init;
-
 - (void)show;
-- (void)setCacheSize:(id)sender;
-- (void)setOpenRecursive:(id)sender;
+- (NSButton *)_findCheckboxInView:(NSView *)view;
 
-- (void)buttonsPressed:(id)sender;
-
-- (void)resetPreferences;
-- (void)setPreferences;
+- (IBAction)resetPreferences:(id)sender;
+- (IBAction)setPreferences:(id)sender;
+- (IBAction)setCacheSize:(id)sender;
+- (IBAction)setOpenRecursive:(id)sender;
 
 @end
 
 #endif // _PREFCONTROLLER_H_
-
