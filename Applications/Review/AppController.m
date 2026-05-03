@@ -209,7 +209,6 @@
 {
   if (sender) {
     [imageWindows removeObject:sender];
-    AUTORELEASE(sender);
   }
 
   if (imageWindows.count == 0) {
