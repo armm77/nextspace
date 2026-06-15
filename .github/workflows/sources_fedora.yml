@@ -1,4 +1,4 @@
-name: Fedora 41
+name: Fedora 43
 
 on:
   push:
@@ -8,48 +8,39 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    container: amd64/fedora:41
+    runs-on: ubuntu-24.04
+    container: amd64/fedora:43
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install build tools
-      run: dnf -y install sudo git openssh-clients which binutils binutils-gold curl clang
-    - name: Build Apple libraries
+      run: |
+        dnf -y update
+        dnf -y install sudo git cmake curl clang
+
+    - name: Build Core Libraries
       run: |
         cd Packaging/Sources
         ./1_build_libcorefoundation.sh
-    - name: Build Objective-C runtime
-      run: |
-        cd Packaging/Sources
         ./2_build_libobjc2.sh
-    - name: Build GNUstep build tools
-      run: |
-        cd Packaging/Sources
         ./3_build_core.sh
         ./3_build_tools-make.sh
-    - name: Build WRaster
-      run: |
-        cd Packaging/Sources
         ./4_build_libwraster.sh
-    - name: Build GNUstep Foundation
+
+    - name: Build GNUstep
       run: |
         cd Packaging/Sources
         ./5_build_libs-base.sh
-    - name: Build GNUstep AppKit
-      run: |
-        cd Packaging/Sources
         ./6_build_libs-gui.sh
-    - name: Build GNUstep Backend
-      run: |
-        cd Packaging/Sources
         ./7_build_libs-back.sh
-    - name: Build Frameworks
+
+    - name: Build NEXTSPACE Frameworks
       run: |
         cd Packaging/Sources
         ./8_build_Frameworks.sh
-    - name: Build Applications
+
+    - name: Build NEXTSPACE Applications
       run: |
         cd Packaging/Sources
         ./9_build_Applications.sh

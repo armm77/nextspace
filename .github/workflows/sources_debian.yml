@@ -1,4 +1,4 @@
-name: Debian 12
+name: Debian 13
 
 on:
   push:
@@ -9,18 +9,19 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-22.04
-    container: amd64/debian:12
+    runs-on: ubuntu-24.04
+    container: amd64/debian:13
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: APT update
       run: |
-        apt-get -q -y update
+        apt-get update
+        apt-get -y -q upgrade
         apt-get -y -q install sudo curl cmake clang git
 
-    - name: Build core libraries
+    - name: Build Core Libraries
       run: |
         cd Packaging/Sources
         ./0_build_libdispatch.sh
@@ -37,12 +38,12 @@ jobs:
         ./6_build_libs-gui.sh
         ./7_build_libs-back.sh
 
-    - name: Build NextSpace frameworks
+    - name: Build NEXTSPACE Frameworks
       run: |
         cd Packaging/Sources
         ./8_build_Frameworks.sh
 
-    - name: Build NextSpace applications
+    - name: Build NEXTSPACE Applications
       run: |
         cd Packaging/Sources
         ./9_build_Applications.sh
