@@ -114,9 +114,5 @@ if [ -d "${CORE_SOURCES}/usr/share" ]; then
 	$CP_CMD "${CORE_SOURCES}"/usr/share/* $DEST_DIR/usr/share/
 fi
 
-# Set the NEXTSPACE theme as the default for Plymouth
-if command -v plymouth-set-default-theme >/dev/null 2>&1; then
-	if [ ! "`plymouth-set-default-theme`" = "nextspace" ]; then
-		plymouth-set-default-theme -R nextspace
-	fi
-fi
+# Set the NEXTSPACE theme as the default for Plymouth on live systems.
+configure_plymouth_theme nextspace || exit 1

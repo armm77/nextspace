@@ -68,7 +68,7 @@ refresh_ldconfig
 #----------------------------------------
 # Post install
 #----------------------------------------
-if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ]; then
+if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ] && [ "$CI" != "true" ]; then
 	# Login
 	systemctl --quiet is-active loginwindow.service
 	if [ $? -eq 0 ];then

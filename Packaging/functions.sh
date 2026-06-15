@@ -131,7 +131,7 @@ refresh_ldconfig()
 
 reload_systemd_if_live()
 {
-    if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ]; then
+    if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ] && [ "$CI" != "true" ]; then
         sudo systemctl daemon-reload || exit 1
     fi
 }
@@ -141,8 +141,96 @@ enable_service_once()
     service_name=$1
     unit_path=$2
 
-    if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ]; then
+    if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ] && [ "$CI" != "true" ]; then
         systemctl --quiet is-enabled "${service_name}" || sudo systemctl enable "${unit_path}" || exit 1
+    fi
+}
+
+configure_debian_plymouth_boot()
+{
+    if [ "${OS_ID}" != "debian" ]; then
+        return 0
+    fi
+
+    if [ ! -f /etc/default/grub ]; then
+        $ECHO "\033[33mWARNING: /etc/default/grub was not found; skipping Plymouth boot splash configuration.\033[0m"
+        return 0
+    fi
+
+    $ECHO "Configuring Debian Plymouth boot splash..."
+    tmp_grub=`mktemp` || return 1
+
+    awk '
+    BEGIN { updated = 0 }
+    /^GRUB_CMDLINE_LINUX_DEFAULT="/ {
+        args = $0
+        sub(/^GRUB_CMDLINE_LINUX_DEFAULT="/, "", args)
+        sub(/".*$/, "", args)
+        if ((" " args " ") !~ / splash /) {
+            args = args " splash"
+        }
+        print "GRUB_CMDLINE_LINUX_DEFAULT=\"" args "\""
+        updated = 1
+        next
+    }
+    { print }
+    END {
+        if (updated == 0) {
+            print "GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\""
+        }
+    }
+    ' /etc/default/grub > "${tmp_grub}" || {
+        rm -f "${tmp_grub}"
+        return 1
+    }
+
+    if ! cmp -s "${tmp_grub}" /etc/default/grub; then
+        sudo cp "${tmp_grub}" /etc/default/grub || {
+            rm -f "${tmp_grub}"
+            return 1
+        }
+        sudo update-grub || {
+            rm -f "${tmp_grub}"
+            return 1
+        }
+        sudo update-initramfs -u || {
+            rm -f "${tmp_grub}"
+            return 1
+        }
+    else
+        $ECHO "  Plymouth boot splash already configured."
+    fi
+
+    rm -f "${tmp_grub}"
+}
+
+configure_plymouth_theme()
+{
+    theme_name=$1
+
+    if [ -z "${theme_name}" ]; then
+        return 0
+    fi
+
+    if [ "$DEST_DIR" != "" ] || [ "$GITHUB_ACTIONS" = "true" ] || [ "$CI" = "true" ]; then
+        $ECHO "Skipping Plymouth theme activation in build/CI environment."
+        return 0
+    fi
+
+    if [ -f /.dockerenv ] || { command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --container --quiet; }; then
+        $ECHO "Skipping Plymouth theme activation inside container."
+        return 0
+    fi
+
+    if [ ! -d "/lib/modules/`uname -r`" ]; then
+        $ECHO "\033[33mWARNING: /lib/modules/`uname -r` was not found; skipping Plymouth initramfs regeneration.\033[0m"
+        return 0
+    fi
+
+    if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+        if [ ! "`plymouth-set-default-theme`" = "${theme_name}" ]; then
+            plymouth-set-default-theme -R "${theme_name}" || return 1
+        fi
     fi
 }
 

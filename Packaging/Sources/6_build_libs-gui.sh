@@ -84,7 +84,7 @@ $CP_CMD ${SOURCES_DIR}/GlobalDefaults.plist $DEST_DIR/Library/Preferences || exi
 #----------------------------------------
 $CP_CMD ${SOURCES_DIR}/gpbs.service $DEST_DIR/usr/NextSpace/lib/systemd || exit 1
 
-if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ]; then
+if [ "$DEST_DIR" = "" ] && [ "$GITHUB_ACTIONS" != "true" ] && [ "$CI" != "true" ]; then
 	refresh_ldconfig
 	reload_systemd_if_live
 	enable_service_once gpbs /usr/NextSpace/lib/systemd/gpbs.service
