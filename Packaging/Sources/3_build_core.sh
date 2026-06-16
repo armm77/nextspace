@@ -63,14 +63,14 @@ if [ -d "${CORE_SOURCES}/etc/polkit-1/rules.d" ]; then
 	if ! [ -d $DEST_DIR/etc/polkit-1/rules.d ]; then
 		$MKDIR_CMD -v $DEST_DIR/etc/polkit-1/rules.d
 	fi
-	$CP_CMD "${CORE_SOURCES}"/etc/polkit-1/rules.d/*.rules $DEST_DIR/etc/polkit-1/rules.d/
+#	$CP_CMD "${CORE_SOURCES}"/etc/polkit-1/rules.d/*.rules $DEST_DIR/etc/polkit-1/rules.d/
 fi
-if [ -d "${CORE_SOURCES}/etc/udev/rules.d" ]; then
-	if ! [ -d $DEST_DIR/etc/udev/rules.d ]; then
-		$MKDIR_CMD -v $DEST_DIR/etc/udev/rules.d
-	fi
-	$CP_CMD "${CORE_SOURCES}"/etc/udev/rules.d/*.rules $DEST_DIR/etc/udev/rules.d/
-fi
+#if [ -d "${CORE_SOURCES}/etc/udev/rules.d" ]; then
+#	if ! [ -d $DEST_DIR/etc/udev/rules.d ]; then
+#		$MKDIR_CMD -v $DEST_DIR/etc/udev/rules.d
+#	fi
+#	$CP_CMD "${CORE_SOURCES}"/etc/udev/rules.d/*.rules $DEST_DIR/etc/udev/rules.d/
+#fi
 
 # User environment
 if [ -f "${CORE_SOURCES}/etc/profile.d/nextspace.sh" ]; then
